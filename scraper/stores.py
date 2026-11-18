@@ -115,7 +115,7 @@ def prestashop(store, base, categories, delay=1.0):
     offers, seen = [], set()
     for cat in categories:
         for page in range(1, MAX_PAGES):
-            url = urljoin(base, cat) + f"?page={page}"
+            url = urljoin(base, cat) + f"?page={page}&resultsPerPage=60"
             r = soft(lambda: http.get(url), len(offers), url)
             if r is None:
                 break
@@ -167,13 +167,13 @@ def zacatrus():
     return offers
 
 
-# ---------------------------------------------------------------- Ludoteca Maldita (WooCommerce)
+# ---------------------------------------------------------------- WooCommerce (Ludoteca Maldita, EGD Games)
 
-def ludoteca_maldita():
-    store, base = "Ludoteca Maldita", "https://ludotecamaldita.com"
+def woocommerce(store, base):
+    """API pública de WooCommerce (Store API): 100 productos por petición, sin HTML."""
     http = Http(delay=1.0)
     offers = []
-    for page in range(1, 200):
+    for page in range(1, 300):
         r = soft(lambda: http.get(f"{base}/wp-json/wc/store/v1/products?per_page=100&page={page}"), len(offers))
         if r is None:
             break
@@ -187,9 +187,13 @@ def ludoteca_maldita():
             regular = int(pr.get("regular_price") or 0) / div
             imgs = p.get("images") or []
             name = BeautifulSoup(p.get("name", ""), "lxml").get_text()
-            o = offer(store, name, p.get("permalink"), price, regular,
-                      imgs[0].get("src") if imgs else "",
-                      "in" if p.get("is_in_stock") else ("pre" if p.get("is_on_backorder") else "out"))
+            cats = " ".join(c.get("slug", "") for c in p.get("categories") or [])
+            if "segunda-mano" in cats:
+                continue
+            stock = "in" if p.get("is_in_stock") else ("pre" if p.get("is_on_backorder") else "out")
+            if "preventa" in cats or "pre-compra" in cats:
+                stock = "pre"
+            o = offer(store, name, p.get("permalink"), price, regular, imgs[0].get("src") if imgs else "", stock)
             if o:
                 offers.append(o)
         if page >= int(r.headers.get("x-wp-totalpages") or page):
@@ -360,7 +364,10 @@ STORES = {
     "Dungeon Marvels": lambda: prestashop("Dungeon Marvels", "https://dungeonmarvels.com/",
                                           ["10-juegos-de-tablero", "183-juegos-de-cartas-no-coleccionables"]),
     "Jugamos Otra": lambda: prestashop("Jugamos Otra", "https://jugamosotra.com/", ["es/24-juegos"]),
-    "Ludoteca Maldita": ludoteca_maldita,
+    "Ludoteca Maldita": lambda: woocommerce("Ludoteca Maldita", "https://ludotecamaldita.com"),
+    "EGD Games": lambda: woocommerce("EGD Games", "https://egdgames.com"),
+    "PlanetOnGames": lambda: prestashop("PlanetOnGames", "https://www.planetongames.com/",
+                                        ["es/juegos-de-mesa-divertidos-10"]),
     "Kaburi": kaburi,
     "Generación X": generacion_x,
     "MasQueOca": masqueoca,
