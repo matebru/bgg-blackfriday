@@ -58,10 +58,27 @@
   details summary{cursor:pointer}
   details a{color:inherit}
   details li.o{text-decoration:line-through;opacity:.6}
+  .similar{font-size:12px;line-height:1.35;background:#e7f5ff;color:#0b4a8b;padding:5px 8px;border-radius:7px;border:1px solid #a5d8ff}
+  .favbtn{display:block;width:100%;text-align:center;font:inherit;font-weight:700;padding:8px;border-radius:9px;cursor:pointer;border:2px solid #1864ab;background:#fff;color:#1864ab}
+  .favbtn.on{background:#1864ab;color:#fff}
+  .tabs{display:flex;gap:8px;padding:12px 24px 0}
+  .tab{font:inherit;font-weight:700;padding:9px 16px;border-radius:9px;border:2px solid #111;background:#fff;cursor:pointer}
+  .tab.on{background:#111;color:#fff}
+  .favs h2{font-size:18px;margin:22px 0 8px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:6px}
+  .favs h2 small{font-size:14px;color:var(--muted);font-weight:600}
+  .frow{display:grid;grid-template-columns:64px 1fr auto auto;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px}
+  .frow img{width:64px;height:64px;object-fit:contain}
+  .frow .n{font-weight:650}
+  .frow .s{font-size:12px;color:var(--muted)}
+  .frow .p{font-weight:800;font-size:18px;text-align:right}
+  .frow a.go{background:#111;color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;font-weight:650;font-size:13px}
+  .frow button{font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 8px;cursor:pointer}
+  .favtools{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:6px;font-size:14px}
+  .total{font-size:20px;font-weight:800;margin-top:18px;text-align:right}
   .more{display:block;margin:24px auto 0;font:inherit;padding:10px 22px;border-radius:99px;border:1px solid var(--line);background:#fff;cursor:pointer}
   .empty{text-align:center;color:var(--muted);padding:60px 0}
   footer{font-size:12px;color:var(--muted);padding:0 24px 30px}
-  @media (max-width:640px){.bar{position:static}header,.bar,main{padding-left:14px;padding-right:14px}.grid{grid-template-columns:repeat(2,1fr);gap:10px}.price{font-size:18px}input[type=search]{min-width:0;width:100%}.f{flex:1 1 45%}}
+  @media (max-width:640px){.frow{grid-template-columns:48px 1fr auto}.frow a.go{grid-column:2/4}.tabs{padding:10px 14px 0}.bar{position:static}header,.bar,main{padding-left:14px;padding-right:14px}.grid{grid-template-columns:repeat(2,1fr);gap:10px}.price{font-size:18px}input[type=search]{min-width:0;width:100%}.f{flex:1 1 45%}}
 </style>
 </head>
 <body>
@@ -71,6 +88,8 @@
   <div class="stores" id="stores" title="Pulsa una tienda para ocultarla/mostrarla"></div>
   <div class="legend">✓ azul = leída hoy · ⚠ amarilla = falló hoy, se muestran datos anteriores · ✗ rayada = sin datos · pulsa una tienda para ocultarla</div>
 </header>
+
+<div class="tabs"><button class="tab on" id="tabDeals">Ofertas</button><button class="tab" id="tabFavs">★ Favoritos (0)</button></div>
 
 <div class="bar">
   <label class="f"><b>Buscar</b><input type="search" id="q" placeholder="Nombre del juego…"></label>
@@ -90,6 +109,7 @@
 </div>
 
 <main>
+  <section class="favs" id="favs" hidden></section>
   <div class="grid" id="grid"></div>
   <button class="more" id="more" hidden>Ver más</button>
   <div class="empty" id="empty" hidden>Nada cumple los filtros. Baja el descuento mínimo o amplía el ranking.</div>
@@ -108,7 +128,14 @@ const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>
 const PAGE = 60;
 const PH = "data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f1efe9"/><text x="50" y="57" font-size="34" text-anchor="middle">🎲</text></svg>');
 
-let DATA, hidden = new Set(), shown = PAGE, list = [];
+let DATA, hidden = new Set(), shown = PAGE, list = [], mode = 'deals';
+const SIMILAR = 1.05;   // otra tienda "a precio similar" = como mucho un 5% más cara
+let FAVS = {};
+try { FAVS = JSON.parse(localStorage.getItem('bf_favs')||'{}') || {}; } catch(e) {}
+const saveFavs = () => { try { localStorage.setItem('bf_favs', JSON.stringify(FAVS)); } catch(e) {} favCount(); };
+const favCount = () => { $('tabFavs').textContent = `★ Favoritos (${Object.keys(FAVS).length})`; };
+const similarOf = i => i.offers.filter(o => !(o.store===i.store && o.lang===i.lang) && o.stock!=='out'
+                                            && !hidden.has(o.store) && o.price <= i.price*SIMILAR);
 
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   DATA = d;
@@ -125,10 +152,24 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   }).join('');
   $('stores').onclick = e => { const el = e.target.closest('.st'); if(!el) return;
     const n = el.dataset.s; hidden.has(n) ? hidden.delete(n) : hidden.add(n); el.classList.toggle('off'); apply(); };
+  favCount();
   apply();
 }).catch(e=>{ $('sub').textContent = 'No se pudo cargar data.json: '+e; });
 
 ['q','d','r','t','s','stk','lng'].forEach(id=>$(id).addEventListener('input',apply));
+$('tabDeals').onclick = ()=>setMode('deals');
+$('tabFavs').onclick = ()=>setMode('favs');
+function setMode(m){ mode=m; $('tabDeals').classList.toggle('on',m==='deals'); $('tabFavs').classList.toggle('on',m==='favs');
+  document.querySelector('.bar').style.display = m==='favs' ? 'none' : ''; $('favs').hidden = m!=='favs';
+  ['grid','more','empty'].forEach(id=>$(id).style.display = m==='favs' ? 'none' : '');
+  m==='favs' ? renderFavs() : render(); }
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-fav]'); if(!b) return;
+  const k = b.dataset.fav;
+  if(FAVS[k]) delete FAVS[k];
+  else { const i = DATA.items.find(x=>x.key===k); if(i) FAVS[k] = {key:k, name:i.name, img:i.img, price:i.price, store:i.store, url:i.url, at:DATA.generated_at}; }
+  saveFavs(); mode==='favs' ? renderFavs() : render();
+});
 $('more').onclick = ()=>{ shown += PAGE; render(); };
 
 // Si ocultas la tienda que tenía el mejor precio, el juego pasa a la siguiente tienda visible.
@@ -155,10 +196,11 @@ function apply(){
   const by = {disc:(a,b)=>b.discount-a.discount||a.rank-b.rank, rank:(a,b)=>a.rank-b.rank||b.discount-a.discount,
               price:(a,b)=>a.price-b.price, save:(a,b)=>(b.pvp-b.price)-(a.pvp-a.price)}[s];
   list.sort(by);
-  shown = PAGE; render();
+  shown = PAGE; mode==='favs' ? renderFavs() : render();
 }
 
 function card(i){
+  const sim = similarOf(i);
   const others = i.offers.filter(o=>!(o.store===i.store && o.lang===i.lang));
   const tag = i.kind==='expansion' ? `<span class="tag" title="Expansión de ${esc(i.base_name)}">Expansión · ${esc(i.base_name)}</span>` : '';
   const st = i.stock==='out' ? '<span class="tag out">Agotado</span>' : i.stock==='pre' ? '<span class="tag pre">Preventa</span>' : '';
@@ -171,14 +213,54 @@ function card(i){
       ${tag}${st}${i.lang==='en'?'<span class="tag en" title="Edición en inglés">EN</span>':''}
     </a>
     <div class="body">
+      ${sim.length?`<div class="similar">≈ También a precio similar en: <b>${sim.map(o=>`${esc(o.store)} (${fmt(o.price)})`).join(', ')}</b></div>`:''}
       <div class="name" title="${esc(i.name)}">${esc(i.name)}</div>
       ${sub?`<div class="bggn">BGG: ${esc(sub)}</div>`:''}
       <div class="prices"><span class="price">${fmt(i.price)}</span>${i.pvp>i.price?`<span class="pvp">${fmt(i.pvp)}</span>`:''}</div>
       <div class="meta"><span>${esc(i.store)}</span>${i.min_seen<i.price?`<span class="min" title="Precio mínimo registrado en la campaña">mín. visto ${fmt(i.min_seen)}</span>`:''}</div>
       ${others.length?`<details><summary>Otras tiendas (${others.length})</summary><ul>${others.map(o=>`<li class="${o.stock==='out'?'o':''}"><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.store)}</a>: ${fmt(o.price)}${o.lang==='en'?' (EN)':''}</li>`).join('')}</ul></details>`:''}
       <a class="buy" href="${esc(i.url)}" target="_blank" rel="noopener">Ver en ${esc(i.store)}</a>
+      <button class="favbtn ${FAVS[i.key]?'on':''}" data-fav="${esc(i.key)}">${FAVS[i.key]?'★ En favoritos':'☆ Añadir a favoritos'}</button>
     </div>
   </article>`;
+}
+
+// Favoritos agrupados por tienda. Con "agrupar" activo, cada juego va a la tienda donde está a
+// precio similar (±5%) que más favoritos comparte, para pedir en el menor número de tiendas.
+function renderFavs(){
+  const consolidate = $('cons') ? $('cons').checked : true;
+  const live = [], gone = [];
+  for(const f of Object.values(FAVS)){
+    const it = DATA.items.find(x=>x.key===f.key); const v = it && view(it);
+    v ? live.push(v) : gone.push(f);
+  }
+  const cands = i => [{store:i.store, price:i.price, url:i.url, lang:i.lang}].concat(consolidate ? similarOf(i) : []);
+  const freq = {}; live.forEach(i=>new Set(cands(i).map(o=>o.store)).forEach(s=>freq[s]=(freq[s]||0)+1));
+  const groups = {};
+  for(const i of live){
+    const pick = cands(i).sort((a,b)=>(freq[b.store]-freq[a.store]) || (a.price-b.price))[0];
+    (groups[pick.store] = groups[pick.store] || []).push({i, o:pick});
+  }
+  const order = Object.entries(groups).sort((a,b)=>b[1].length-a[1].length);
+  let total = 0;
+  const html = order.map(([st, rows])=>{
+    const sub = rows.reduce((t,r)=>t+r.o.price,0); total += sub;
+    return `<h2>${esc(st)} <small>${rows.length} ${rows.length>1?'juegos':'juego'} · ${fmt(sub)}</small></h2>` + rows.map(({i,o})=>{
+      const alt = similarOf(i).filter(x=>x.store!==o.store).concat(o.store!==i.store?[{store:i.store,price:i.price}]:[]);
+      return `<div class="frow"><img src="${esc(i.img)||PH}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${PH}'" alt="">
+        <div><div class="n">${esc(i.name)}</div><div class="s">PVP ${fmt(i.pvp)} · -${Math.round(100*(1-o.price/i.pvp))}%${alt.length?' · también: '+alt.map(x=>`${esc(x.store)} ${fmt(x.price)}`).join(', '):''}</div>
+        <button data-fav="${esc(i.key)}">Quitar</button></div>
+        <div class="p">${fmt(o.price)}</div><a class="go" href="${esc(o.url)}" target="_blank" rel="noopener">Ir a ${esc(st)}</a></div>`;
+    }).join('');
+  }).join('');
+  const goneHtml = gone.length ? `<h2>Ya no aparecen en las ofertas <small>${gone.length}</small></h2>` + gone.map(f=>`<div class="frow"><img src="${esc(f.img)||PH}" referrerpolicy="no-referrer" alt="">
+      <div><div class="n">${esc(f.name)}</div><div class="s">Último visto: ${esc(f.store)} a ${fmt(f.price)}</div><button data-fav="${esc(f.key)}">Quitar</button></div>
+      <div class="p"></div><a class="go" href="${esc(f.url)}" target="_blank" rel="noopener">Ver</a></div>`).join('') : '';
+  $('favs').innerHTML = `<div class="favtools"><label><input type="checkbox" id="cons" ${consolidate?'checked':''}> Agrupar para pedir en menos tiendas (acepta hasta un 5% más caro)</label>
+      <span>${live.length} favoritos en ${order.length} ${order.length===1?'tienda':'tiendas'}</span></div>`
+    + (live.length||gone.length ? html + goneHtml + (live.length?`<div class="total">Total: ${fmt(total)}</div>`:'')
+       : '<p class="empty">Aún no tienes favoritos. Pulsa «☆ Añadir a favoritos» en cualquier juego.</p>');
+  $('cons').onchange = renderFavs;
 }
 
 function render(){
