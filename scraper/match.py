@@ -18,10 +18,11 @@ FUZZY_MIN = 94
 # Productos que no son juegos (accesorios, merchandising) o no son comparables
 NOT_A_GAME = re.compile(
     r"\b(fundas?|sleeves?|insert[oa]?s?|organizador|organizer|playmat|tapete|neopreno|camiseta|taza|"
-    r"puzzle|p[oó]ster|artbook|libro de arte|mochila|bolsa|caja de almacenaje|storage|"
+    r"puzzle|p[oó]ster|art ?book|libro de arte|pre-?release|mochila|bolsa|caja de almacenaje|storage|"
     r"monedas de metal|fichas de metal|metal coins|set de dados|pack de dados|dice set|"
     r"repuesto|recambio|segunda mano|usado|tara|golpeado|da[nñ]ad[oa]|defectuos[oa]|"
-    r"pintad[oa]s?|pinturas?|pincel|figura coleccionable|funko|peluche|llavero|pin)\b",
+    r"pintad[oa]s?|pinturas?|pincel|figura coleccionable|funko|peluche|llavero|pin|"
+    r"sobres?|boosters?|booster box|display)\b",
     re.I,
 )
 # Inglés y castellano valen; el resto de idiomas se descarta.
@@ -36,10 +37,14 @@ FOREIGN = re.compile(
     r"edici[oó]n (alemana|francesa|italiana)|en (alem[aá]n|franc[eé]s|italiano))\b",
     re.I,
 )
+FAN = re.compile(r"fan expansion|\(fan\b|fan-made", re.I)
+# "Juego: El juego de dados", "Juego Junior"... son juegos derivados, no expansiones
+SPINOFF = re.compile(r"\bjuego de (cartas|dados|tablero|rol)\b|\b(card|dice|board) game\b|\b(junior|kids|duel|duo|"
+                     r"mini|go|express|legacy|roll|flip)\b", re.I)
 NOISE = [
     r"[\(\[][^\)\]]*[\)\]]",                      # todo lo que vaya entre paréntesis/corchetes
     r"\s[-–]\s*juego (de|cooperativo|competitivo|familiar)\b.*$",   # coletillas de Kaburi
-    r"\bjuego de (mesa|tablero|cartas)\b",
+    r"\bjuego de mesa\b",
     r"\b(edici[oó]n|version|versi[oó]n)\s+(en\s+)?(castellano|espa[nñ]ol|espanola)\b",
     r"\b(castellano|espa[nñ]ol|spanish|catal[aà]|catala)\b",
     r"\b(nueva|new|segunda|2a|2ª|tercera|3a|revisada|revised|deluxe|de lujo|kickstarter|ks|retail|"
@@ -80,12 +85,20 @@ class Matcher:
         # Expansiones primero, luego bases: ante choque de nombres gana el base.
         for g in sorted(bgg["games"], key=lambda g: -g["rank"]):
             for e in g.get("expansions", []):
+                if FAN.search(e["name"]):
+                    continue
                 n = norm(e["name"])
                 if len(n) >= 3:
                     self.index[n] = ("expansion", e["id"], g["id"], e["name"])
         for g in sorted(bgg["games"], key=lambda g: -g["rank"]):
+            primary = norm(g["name"])
             for name in set(g.get("names") or []) | {g["name"]}:
                 n = norm(name)
+                # Un alias de una sola palabra ("Dracula", "Amazonia") solo vale si se parece al nombre
+                # principal (Pandemia ~ Pandemic, Catane ~ Catan); si no, da falsos positivos.
+                if (n != primary and " " not in n and fuzz.ratio(n, primary) < 75
+                        and not primary.startswith(n + " ")):
+                    continue
                 if len(n) >= 2:
                     self.index[n] = ("base", g["id"], g["id"], g["name"])
                     self.base_index[n] = g["id"]
@@ -107,12 +120,12 @@ class Matcher:
 
         for pref in split_prefixes(product_name):
             pn = norm(pref)
-            if len(pn) >= 4 and pn in self.base_index:
+            if len(pn) >= 4 and pn in self.base_index and not SPINOFF.search(product_name[len(pref):]):
                 base_id = self.base_index[pn]
                 # ¿El subtítulo es una expansión conocida con otro nombre? Probamos difuso solo entre ellas.
                 exps = self.games[base_id].get("expansions") or []
                 if exps:
-                    choices = {norm(e["name"]): e for e in exps}
+                    choices = {norm(e["name"]): e for e in exps if not FAN.search(e["name"])}
                     best = process.extractOne(n, list(choices), scorer=fuzz.token_set_ratio, score_cutoff=92)
                     if best:
                         e = choices[best[0]]
@@ -121,7 +134,8 @@ class Matcher:
 
         if len(n) >= 6:
             best = process.extractOne(n, self._keys, scorer=fuzz.ratio, score_cutoff=FUZZY_MIN)
-            if best:
+            # "Temporada 2" no es "Temporada 0": en difuso los números tienen que coincidir
+            if best and re.findall(r"\d+", best[0]) == re.findall(r"\d+", n):
                 return self._res(self.index[best[0]], "difuso", foreign, lang)
         return None
 
