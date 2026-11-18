@@ -40,6 +40,7 @@ jobs:
 
       - name: Top 1000 BGG (forzado)
         if: ${{ inputs.refresh_bgg }}
+        continue-on-error: true   # BGG suele bloquear a GitHub; si falla, se usa la copia guardada
         run: python -m scraper.bgg
 
       - name: Scrapear tiendas y generar panel
