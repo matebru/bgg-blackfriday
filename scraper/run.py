@@ -18,6 +18,7 @@ from pathlib import Path
 from . import bgg
 from .match import Matcher, norm
 from .stores import STORES
+from . import http as http_mod
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "data.json"
@@ -47,7 +48,8 @@ def scrape_store(name, fn):
         return offers, status
     except Exception as e:  # noqa: BLE001
         traceback.print_exc()
-        status = {"ok": False, "error": str(e)[:200], "seconds": round(time.time() - t0)}
+        status = {"ok": False, "error": str(e)[:200], "seconds": round(time.time() - t0),
+                  "last_response": getattr(http_mod.LAST, "info", None)}
         if cache.exists():
             c = json.loads(cache.read_text())
             age = now() - datetime.fromisoformat(c["at"])
