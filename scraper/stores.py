@@ -48,6 +48,17 @@ def slug_name(url):
     return path.replace("-", " ").strip()
 
 
+def soft(call, have, url=""):
+    """Ejecuta una petición; si falla a mitad de catálogo, nos quedamos con lo leído hasta ahí."""
+    try:
+        return call()
+    except Exception as e:  # noqa: BLE001
+        if have:
+            print(f"  ! {url}: {e} -> paro aquí y me quedo con {have} productos", flush=True)
+            return None
+        raise
+
+
 def offer(store, name, url, price, regular, img, stock):
     if not name or not url or not price or price <= 0:
         return None
@@ -105,7 +116,10 @@ def prestashop(store, base, categories, delay=1.0):
     for cat in categories:
         for page in range(1, MAX_PAGES):
             url = urljoin(base, cat) + f"?page={page}"
-            items = _presta_page(store, base, http.get(url).text)
+            r = soft(lambda: http.get(url), len(offers), url)
+            if r is None:
+                break
+            items = _presta_page(store, base, r.text)
             new = [o for o in items if o["url"] not in seen]
             if not new:   # PrestaShop repite la última página cuando te pasas
                 break
@@ -122,7 +136,10 @@ def zacatrus():
     http = Http(delay=3.0)  # su robots.txt pide Crawl-delay: 3
     offers, seen = [], set()
     for page in range(1, MAX_PAGES):
-        soup = BeautifulSoup(http.get(f"{base}juegos-de-mesa.html?p={page}").text, "lxml")
+        r = soft(lambda: http.get(f"{base}juegos-de-mesa.html?p={page}"), len(offers))
+        if r is None:
+            break
+        soup = BeautifulSoup(r.text, "lxml")
         items = soup.select("li.product-item, .product-item")
         new = 0
         for it in items:
@@ -157,7 +174,9 @@ def ludoteca_maldita():
     http = Http(delay=1.0)
     offers = []
     for page in range(1, 200):
-        r = http.get(f"{base}/wp-json/wc/store/v1/products?per_page=100&page={page}")
+        r = soft(lambda: http.get(f"{base}/wp-json/wc/store/v1/products?per_page=100&page={page}"), len(offers))
+        if r is None:
+            break
         items = r.json()
         if not items:
             break
@@ -224,7 +243,10 @@ def kaburi():
             data["Paginar_p"] = str(page)
             data["Paginar_pc"] = "n"
             action = urljoin(url, form.get("action") or url)
-            soup, items = _kaburi_parse(http.post(action, data=data).text)
+            r = soft(lambda: http.post(action, data=data), len(offers))
+            if r is None:
+                break
+            soup, items = _kaburi_parse(r.text)
     return offers
 
 
@@ -236,7 +258,10 @@ def generacion_x():
     offers, seen = [], set()
     for cat in ("juegos-de-mesa", "juegos-de-cartas"):
         for page in range(1, MAX_PAGES):
-            soup = BeautifulSoup(http.get(f"{base}{cat}?pagina={page}").text, "lxml")
+            r = soft(lambda: http.get(f"{base}{cat}?pagina={page}"), len(offers))
+            if r is None:
+                break
+            soup = BeautifulSoup(r.text, "lxml")
             new = 0
             for t in soup.select(".filetitle"):
                 a = t.select_one("a[href]")
@@ -279,7 +304,9 @@ def masqueoca():
     offers, seen = [], set()
     for tipo in (1, 2):  # 1 = juegos de mesa, 2 = juegos de cartas
         for page in range(1, MAX_PAGES):
-            r = http.get(f"{base}buscardo.asp?xs=0&t=1&pact={page}&idtipojuego={tipo}")
+            r = soft(lambda: http.get(f"{base}buscardo.asp?xs=0&t=1&pact={page}&idtipojuego={tipo}"), len(offers))
+            if r is None:
+                break
             html = r.content.decode("windows-1252", errors="replace")
             soup = BeautifulSoup(html, "lxml")
             new = 0
