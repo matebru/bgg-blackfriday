@@ -1,0 +1,58 @@
+name: Black Friday scrape
+
+on:
+  schedule:
+    # GitHub usa UTC. Madrid en invierno = UTC+1 -> 10:00 y 22:00 hora de Madrid.
+    # (GitHub puede retrasar los cron unos minutos en horas punta.)
+    - cron: "0 9 * * *"
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+    inputs:
+      stores:
+        description: "Tiendas separadas por coma (vacío = todas). Ej: Zacatrus,Mathom"
+        required: false
+        default: ""
+      refresh_bgg:
+        description: "Forzar recarga del top 1000 de BGG"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Top 1000 BGG (forzado)
+        if: ${{ inputs.refresh_bgg }}
+        run: python -m scraper.bgg
+
+      - name: Scrapear tiendas y generar panel
+        env:
+          STORES: ${{ inputs.stores }}
+        run: python -m scraper.run
+
+      - name: Publicar datos
+        run: |
+          git config user.name  "bf-bot"
+          git config user.email "bf-bot@users.noreply.github.com"
+          git add docs/data.json data/
+          git diff --staged --quiet && echo "Sin cambios" && exit 0
+          git commit -m "Datos $(TZ=Europe/Madrid date '+%Y-%m-%d %H:%M')"
+          git pull --rebase
+          git push
