@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Black Friday · Juegos de mesa (Top 1000 BGG)</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#fff; --ink:#1d1b18; --muted:#6f6a61; --line:#e4dfd4;
+    --accent:#d9480f; --accent-soft:#fff0e6; --ok:#2b8a3e; --warn:#e8590c; --bad:#c92a2a;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:#111;color:#fff;padding:18px 24px}
+  header h1{margin:0;font-size:22px;letter-spacing:-.01em}
+  header h1 b{color:#ff8a4c}
+  header .sub{color:#bdb6aa;font-size:13px;margin-top:4px}
+  .stores{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .st{font-size:12px;padding:3px 8px;border-radius:99px;background:#222;color:#ddd;cursor:pointer;user-select:none;border:1px solid #333}
+  .st.off{opacity:.35;text-decoration:line-through}
+  .st i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+  .bar{position:sticky;top:0;z-index:5;background:rgba(246,244,239,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:end}
+  .f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  .f b{color:var(--ink);font-size:13px}
+  input[type=search],select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;min-width:200px}
+  input[type=range]{width:170px;accent-color:var(--accent)}
+  .chk{flex-direction:row;align-items:center;gap:6px;font-size:13px;color:var(--ink);padding-bottom:8px}
+  .count{margin-left:auto;font-size:13px;color:var(--muted);padding-bottom:8px}
+  main{padding:20px 24px 60px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:transform .12s,box-shadow .12s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .img{position:relative;aspect-ratio:1/1;background:#fff;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line)}
+  .img img{max-width:88%;max-height:88%;object-fit:contain}
+  .badge{position:absolute;top:10px;left:10px;background:var(--accent);color:#fff;font-weight:800;font-size:18px;padding:4px 9px;border-radius:9px}
+  .badge.zero{background:#adb5bd;font-size:13px}
+  .rank{position:absolute;top:10px;right:10px;background:#111;color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:7px}
+  .tag{position:absolute;bottom:8px;left:10px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;max-width:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag.out{background:#f1f3f5;color:var(--bad);left:auto;right:10px}
+  .tag.en{left:auto;right:10px;top:42px;bottom:auto;background:#1d1b18;color:#fff}
+  .tag.pre{background:#e7f5ff;color:#1971c2;left:auto;right:10px}
+  .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .name{font-weight:650;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .bggn{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prices{display:flex;align-items:baseline;gap:8px;margin-top:auto}
+  .price{font-size:22px;font-weight:800}
+  .pvp{color:var(--muted);text-decoration:line-through;font-size:14px}
+  .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+  .meta .min{color:var(--ok);font-weight:600}
+  .buy{display:block;text-align:center;background:#111;color:#fff;text-decoration:none;font-weight:650;padding:9px;border-radius:9px;margin-top:6px}
+  .buy:hover{background:var(--accent)}
+  details{font-size:12px;color:var(--muted)}
+  details summary{cursor:pointer}
+  details a{color:inherit}
+  details li.o{text-decoration:line-through;opacity:.6}
+  .more{display:block;margin:24px auto 0;font:inherit;padding:10px 22px;border-radius:99px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  .empty{text-align:center;color:var(--muted);padding:60px 0}
+  footer{font-size:12px;color:var(--muted);padding:0 24px 30px}
+  @media (max-width:640px){.bar{position:static}header,.bar,main{padding-left:14px;padding-right:14px}.grid{grid-template-columns:repeat(2,1fr);gap:10px}.price{font-size:18px}input[type=search]{min-width:0;width:100%}.f{flex:1 1 45%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Black Friday · <b>Juegos de mesa</b> del Top 1000 BGG</h1>
+  <div class="sub" id="sub">Cargando…</div>
+  <div class="stores" id="stores" title="Pulsa una tienda para ocultarla/mostrarla"></div>
+</header>
+
+<div class="bar">
+  <label class="f"><b>Buscar</b><input type="search" id="q" placeholder="Nombre del juego…"></label>
+  <label class="f"><b>Descuento mínimo: <span id="dv">10</span>%</b><input type="range" id="d" min="0" max="80" step="5" value="10"></label>
+  <label class="f"><b>Ranking BGG hasta: #<span id="rv">1000</span></b><input type="range" id="r" min="10" max="1000" step="10" value="1000"></label>
+  <label class="f"><b>Tipo</b>
+    <select id="t"><option value="all">Juegos y expansiones</option><option value="base">Solo juegos</option><option value="expansion">Solo expansiones</option></select>
+  </label>
+  <label class="f"><b>Ordenar</b>
+    <select id="s"><option value="disc">Mayor descuento</option><option value="rank">Mejor ranking BGG</option><option value="price">Precio más bajo</option><option value="save">Mayor ahorro en €</option></select>
+  </label>
+  <label class="f"><b>Idioma</b>
+    <select id="lng"><option value="all">Castellano e inglés</option><option value="es">Solo castellano</option><option value="en">Solo inglés</option></select>
+  </label>
+  <label class="f chk"><input type="checkbox" id="stk" checked> Solo con stock / preventa</label>
+  <div class="count" id="count"></div>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <button class="more" id="more" hidden>Ver más</button>
+  <div class="empty" id="empty" hidden>Nada cumple los filtros. Baja el descuento mínimo o amplía el ranking.</div>
+</main>
+<footer>
+  Descuento calculado sobre el PVP (el precio tachado más alto entre tiendas, descartando valores anómalos).
+  Si un juego está en varias tiendas se muestra el mejor precio; el resto en «Otras tiendas».
+  «Mín. visto» = precio más bajo registrado durante la campaña.
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+const strip = s => (s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PAGE = 60;
+const PH = "data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f1efe9"/><text x="50" y="57" font-size="34" text-anchor="middle">🎲</text></svg>');
+
+let DATA, hidden = new Set(), shown = PAGE, list = [];
+
+fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
+  DATA = d;
+  d.items.forEach(i=>i._q = strip(i.name+' '+i.bgg_name+' '+i.base_name));
+  const when = new Date(d.generated_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'full',timeStyle:'short'});
+  $('sub').textContent = `Actualizado ${when} · ${d.items.length} juegos y expansiones del top en ${Object.keys(d.stores).length} tiendas`;
+  $('stores').innerHTML = Object.entries(d.stores).map(([n,s])=>{
+    const c = !s.ok ? (s.stale_from ? 'var(--warn)' : 'var(--bad)') : 'var(--ok)';
+    const tip = s.ok ? `${s.products} productos leídos` : (s.stale_from ? `Error hoy; datos de ${new Date(s.stale_from).toLocaleString('es-ES')}` : `Error: ${s.error}`);
+    return `<span class="st" data-s="${esc(n)}" title="${esc(tip)}"><i style="background:${c}"></i>${esc(n)}</span>`;
+  }).join('');
+  $('stores').onclick = e => { const el = e.target.closest('.st'); if(!el) return;
+    const n = el.dataset.s; hidden.has(n) ? hidden.delete(n) : hidden.add(n); el.classList.toggle('off'); apply(); };
+  apply();
+}).catch(e=>{ $('sub').textContent = 'No se pudo cargar data.json: '+e; });
+
+['q','d','r','t','s','stk','lng'].forEach(id=>$(id).addEventListener('input',apply));
+$('more').onclick = ()=>{ shown += PAGE; render(); };
+
+// Si ocultas la tienda que tenía el mejor precio, el juego pasa a la siguiente tienda visible.
+function view(i){
+  const lng = $('lng').value;
+  if(!hidden.size && lng==='all') return i;
+  const o = i.offers.filter(o=>!hidden.has(o.store) && (lng==='all' || o.lang===lng));
+  if(!o.length) return null;
+  const best = o.find(x=>x.stock!=='out') || o[0];
+  if(best.store===i.store && best.lang===i.lang) return i;
+  return {...i, store:best.store, price:best.price, url:best.url, stock:best.stock, lang:best.lang,
+          discount: Math.max(0, Math.round(1000*(1-best.price/i.pvp))/10)};
+}
+
+function apply(){
+  if(!DATA) return;
+  const q = strip($('q').value.trim()), dmin = +$('d').value, rmax = +$('r').value, t = $('t').value, stk = $('stk').checked, s = $('s').value;
+  $('dv').textContent = dmin; $('rv').textContent = rmax;
+  list = DATA.items.map(view).filter(i => i
+    && i.discount >= dmin && i.rank <= rmax
+    && (t==='all' || i.kind===t)
+    && (!stk || i.stock!=='out')
+    && (!q || q.split(/\s+/).every(w=>i._q.includes(w))));
+  const by = {disc:(a,b)=>b.discount-a.discount||a.rank-b.rank, rank:(a,b)=>a.rank-b.rank||b.discount-a.discount,
+              price:(a,b)=>a.price-b.price, save:(a,b)=>(b.pvp-b.price)-(a.pvp-a.price)}[s];
+  list.sort(by);
+  shown = PAGE; render();
+}
+
+function card(i){
+  const others = i.offers.filter(o=>!(o.store===i.store && o.lang===i.lang));
+  const tag = i.kind==='expansion' ? `<span class="tag" title="Expansión de ${esc(i.base_name)}">Expansión · ${esc(i.base_name)}</span>` : '';
+  const st = i.stock==='out' ? '<span class="tag out">Agotado</span>' : i.stock==='pre' ? '<span class="tag pre">Preventa</span>' : '';
+  const sub = i.bgg_name && strip(i.bgg_name)!==strip(i.name) ? i.bgg_name : (i.kind==='expansion' ? '' : i.base_name);
+  return `<article class="card">
+    <a class="img" href="${esc(i.url)}" target="_blank" rel="noopener">
+      <img loading="lazy" referrerpolicy="no-referrer" src="${esc(i.img)||PH}" alt="${esc(i.name)}" onerror="this.onerror=null;this.src='${PH}'">
+      <span class="badge ${i.discount<1?'zero':''}">${i.discount<1?'PVP':'-'+Math.round(i.discount)+'%'}</span>
+      <span class="rank" title="Ranking BoardGameGeek${i.kind==='expansion'?' del juego base':''}">#${i.rank}</span>
+      ${tag}${st}${i.lang==='en'?'<span class="tag en" title="Edición en inglés">EN</span>':''}
+    </a>
+    <div class="body">
+      <div class="name" title="${esc(i.name)}">${esc(i.name)}</div>
+      ${sub?`<div class="bggn">BGG: ${esc(sub)}</div>`:''}
+      <div class="prices"><span class="price">${fmt(i.price)}</span>${i.pvp>i.price?`<span class="pvp">${fmt(i.pvp)}</span>`:''}</div>
+      <div class="meta"><span>${esc(i.store)}</span>${i.min_seen<i.price?`<span class="min" title="Precio mínimo registrado en la campaña">mín. visto ${fmt(i.min_seen)}</span>`:''}</div>
+      ${others.length?`<details><summary>Otras tiendas (${others.length})</summary><ul>${others.map(o=>`<li class="${o.stock==='out'?'o':''}"><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.store)}</a>: ${fmt(o.price)}${o.lang==='en'?' (EN)':''}</li>`).join('')}</ul></details>`:''}
+      <a class="buy" href="${esc(i.url)}" target="_blank" rel="noopener">Ver en ${esc(i.store)}</a>
+    </div>
+  </article>`;
+}
+
+function render(){
+  $('grid').innerHTML = list.slice(0,shown).map(card).join('');
+  $('count').textContent = `${list.length} resultados`;
+  $('more').hidden = shown >= list.length;
+  $('empty').hidden = list.length > 0;
+}
+</script>
+</body>
+</html>
