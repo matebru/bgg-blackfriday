@@ -105,6 +105,7 @@
     <select id="lng"><option value="all">Castellano e inglés</option><option value="es">Solo castellano</option><option value="en">Solo inglés</option></select>
   </label>
   <label class="f chk"><input type="checkbox" id="stk" checked> Solo con stock / preventa</label>
+  <label class="f chk" title="X-Wing, Armada, Star Wars Unlimited, Star Wars Destiny, Blood Bowl, Runewars, Magic"><input type="checkbox" id="mini" checked> Ocultar miniaturas de ejércitos y coleccionables</label>
   <div class="count" id="count"></div>
 </div>
 
@@ -134,6 +135,8 @@ let FAVS = {};
 try { FAVS = JSON.parse(localStorage.getItem('bf_favs')||'{}') || {}; } catch(e) {}
 const saveFavs = () => { try { localStorage.setItem('bf_favs', JSON.stringify(FAVS)); } catch(e) {} favCount(); };
 const favCount = () => { $('tabFavs').textContent = `★ Favoritos (${Object.keys(FAVS).length})`; };
+// Juegos del top que funcionan comprando ejércitos/sobres (wargames de miniaturas y coleccionables)
+const MINIS = /^(magic: the gathering|star wars: x-wing|star wars: armada|star wars: unlimited|star wars: destiny|runewars|blood bowl \(|blood bowl: living rulebook|warhammer 40,000|warhammer age of sigmar|warhammer underworlds|star wars: legion|star wars: shatterpoint|marvel: crisis protocol)/i;
 const similarOf = i => i.offers.filter(o => !(o.store===i.store && o.lang===i.lang) && o.stock!=='out'
                                             && !hidden.has(o.store) && o.price <= i.price*SIMILAR);
 
@@ -156,7 +159,7 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   apply();
 }).catch(e=>{ $('sub').textContent = 'No se pudo cargar data.json: '+e; });
 
-['q','d','r','t','s','stk','lng'].forEach(id=>$(id).addEventListener('input',apply));
+['q','d','r','t','s','stk','lng','mini'].forEach(id=>$(id).addEventListener('input',apply));
 $('tabDeals').onclick = ()=>setMode('deals');
 $('tabFavs').onclick = ()=>setMode('favs');
 function setMode(m){ mode=m; $('tabDeals').classList.toggle('on',m==='deals'); $('tabFavs').classList.toggle('on',m==='favs');
@@ -192,6 +195,7 @@ function apply(){
     && i.discount >= dmin && i.rank <= rmax
     && (t==='all' || i.kind===t)
     && (!stk || i.stock!=='out')
+    && (!$('mini').checked || !MINIS.test(i.base_name))
     && (!q || q.split(/\s+/).every(w=>i._q.includes(w))));
   const by = {disc:(a,b)=>b.discount-a.discount||a.rank-b.rank, rank:(a,b)=>a.rank-b.rank||b.discount-a.discount,
               price:(a,b)=>a.price-b.price, save:(a,b)=>(b.pvp-b.price)-(a.pvp-a.price)}[s];
