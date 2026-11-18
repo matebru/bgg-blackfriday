@@ -27,6 +27,7 @@ HISTORY = ROOT / "data" / "history.json"
 
 INCLUDE_FOREIGN = False      # alemán, francés, italiano... fuera (inglés y castellano sí entran)
 STALE_MAX_HOURS = 30         # si una tienda falla, reutilizamos su último scrape si es reciente
+SUSPICIOUS = 0.35            # precio < 35% de la mediana del resto de tiendas -> se descarta
 PVP_OUTLIER = 1.6            # un tachado > 1.6x la mediana se ignora (precio inflado o error)
 
 
@@ -68,6 +69,18 @@ def pvp_of(offers):
     return max(sane)
 
 
+def drop_suspicious(offers):
+    """Quita precios absurdamente bajos frente al resto de tiendas (hojas de reglas, promos o
+    productos mal casados que valen 0,21 €). Con menos de 2 tiendas de referencia no se toca."""
+    keep = []
+    for o in offers:
+        others = [x["price"] for x in offers if x is not o]
+        if len(others) >= 2 and o["price"] < SUSPICIOUS * statistics.median(others):
+            continue
+        keep.append(o)
+    return keep or offers
+
+
 def main(only=None):
     data_bgg = bgg.load()
     matcher = Matcher(data_bgg)
@@ -102,7 +115,7 @@ def main(only=None):
         per_store = {}
         for o in sorted(offers, key=lambda o: (o["stock"] == "out", o["price"])):
             per_store.setdefault((o["store"], o["lang"]), o)
-        offers = sorted(per_store.values(), key=lambda o: o["price"])
+        offers = drop_suspicious(sorted(per_store.values(), key=lambda o: o["price"]))
         available = [o for o in offers if o["stock"] != "out"]
         best = (available or offers)[0]
         pvp = pvp_of(offers)

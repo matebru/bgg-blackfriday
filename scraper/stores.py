@@ -357,10 +357,7 @@ STORES = {
     "Dracotienda": lambda: prestashop("Dracotienda", "https://dracotienda.com/",
                                       ["1715-juegos-de-tablero", "1729-juegos-de-cartas"]),
     "Mathom": lambda: prestashop("Mathom", "https://mathom.es/", ["es/2-juegos-de-mesa"]),
-    "Juegos de la Mesa Redonda": lambda: prestashop(
-        "Juegos de la Mesa Redonda", "https://juegosdelamesaredonda.com/",
-        ["7-juegos-de-tablero", "6-juegos-de-cartas", "9-juegos-para-ninos", "64-juegos-de-importacion",
-         "76-juegos-de-dados", "215-wargames", "108-expansiones-de-juegos"]),
+    # Juegos de la Mesa Redonda: fuera, su Cloudflare exige ejecutar JavaScript ("Just a moment...")
     "Dungeon Marvels": lambda: prestashop("Dungeon Marvels", "https://dungeonmarvels.com/",
                                           ["10-juegos-de-tablero", "183-juegos-de-cartas-no-coleccionables"]),
     "Jugamos Otra": lambda: prestashop("Jugamos Otra", "https://jugamosotra.com/", ["es/24-juegos"]),
