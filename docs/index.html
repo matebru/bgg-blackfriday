@@ -38,6 +38,7 @@
   .img{position:relative;aspect-ratio:1/1;background:#fff;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line)}
   .img img{max-width:88%;max-height:88%;object-fit:contain}
   .badge{position:absolute;top:10px;left:10px;background:var(--accent);color:#fff;font-weight:800;font-size:18px;padding:4px 9px;border-radius:9px}
+  .rank.new{background:#ffd43b;color:#111;border:2px solid #111}
   .badge.zero{background:#adb5bd;font-size:13px}
   .rank{position:absolute;top:10px;right:10px;background:#111;color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:7px}
   .tag{position:absolute;bottom:8px;left:10px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;max-width:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -105,6 +106,7 @@
     <select id="lng"><option value="all">Castellano e inglés</option><option value="es">Solo castellano</option><option value="en">Solo inglés</option></select>
   </label>
   <label class="f chk"><input type="checkbox" id="stk" checked> Solo con stock / preventa</label>
+  <label class="f chk" title="Juegos publicados en 2025 y 2026 que no están en el top 1000 de BGG"><input type="checkbox" id="nov" checked> Incluir novedades 2025-2026</label>
   <label class="f chk" title="X-Wing, Armada, Star Wars Unlimited, Star Wars Destiny, Blood Bowl, Runewars, Magic"><input type="checkbox" id="mini" checked> Ocultar miniaturas de ejércitos y coleccionables</label>
   <div class="count" id="count"></div>
 </div>
@@ -159,7 +161,7 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   apply();
 }).catch(e=>{ $('sub').textContent = 'No se pudo cargar data.json: '+e; });
 
-['q','d','r','t','s','stk','lng','mini'].forEach(id=>$(id).addEventListener('input',apply));
+['q','d','r','t','s','stk','lng','mini','nov'].forEach(id=>$(id).addEventListener('input',apply));
 $('tabDeals').onclick = ()=>setMode('deals');
 $('tabFavs').onclick = ()=>setMode('favs');
 function setMode(m){ mode=m; $('tabDeals').classList.toggle('on',m==='deals'); $('tabFavs').classList.toggle('on',m==='favs');
@@ -192,12 +194,12 @@ function apply(){
   const q = strip($('q').value.trim()), dmin = +$('d').value, rmax = +$('r').value, t = $('t').value, stk = $('stk').checked, s = $('s').value;
   $('dv').textContent = dmin; $('rv').textContent = rmax;
   list = DATA.items.map(view).filter(i => i
-    && i.discount >= dmin && i.rank <= rmax
+    && i.discount >= dmin && (i.new ? $('nov').checked : i.rank <= rmax)
     && (t==='all' || i.kind===t)
     && (!stk || i.stock!=='out')
     && (!$('mini').checked || !MINIS.test(i.base_name))
     && (!q || q.split(/\s+/).every(w=>i._q.includes(w))));
-  const by = {disc:(a,b)=>b.discount-a.discount||a.rank-b.rank, rank:(a,b)=>a.rank-b.rank||b.discount-a.discount,
+  const by = {disc:(a,b)=>b.discount-a.discount||(a.rank||99999)-(b.rank||99999), rank:(a,b)=>(a.rank||99999)-(b.rank||99999)||b.discount-a.discount,
               price:(a,b)=>a.price-b.price, save:(a,b)=>(b.pvp-b.price)-(a.pvp-a.price)}[s];
   list.sort(by);
   shown = PAGE; mode==='favs' ? renderFavs() : render();
@@ -213,7 +215,9 @@ function card(i){
     <a class="img" href="${esc(i.url)}" target="_blank" rel="noopener">
       <img loading="lazy" referrerpolicy="no-referrer" src="${esc(i.img)||PH}" alt="${esc(i.name)}" onerror="this.onerror=null;this.src='${PH}'">
       <span class="badge ${i.discount<1?'zero':''}">${i.discount<1?'PVP':'-'+Math.round(i.discount)+'%'}</span>
-      <span class="rank" title="Ranking BoardGameGeek${i.kind==='expansion'?' del juego base':''}">#${i.rank}</span>
+      ${i.new
+        ? `<span class="rank new" title="Novedad ${i.year||''} fuera del top 1000${i.rank?' · ranking BGG #'+i.rank:''}">NOVEDAD ${i.year||''}</span>`
+        : `<span class="rank" title="Ranking BoardGameGeek${i.kind==='expansion'?' del juego base':''}">#${i.rank}</span>`}
       ${tag}${st}${i.lang==='en'?'<span class="tag en" title="Edición en inglés">EN</span>':''}
     </a>
     <div class="body">
