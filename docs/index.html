@@ -16,10 +16,14 @@
   header h1{margin:0;font-size:22px;letter-spacing:-.01em}
   header h1 b{color:#ff8a4c}
   header .sub{color:#bdb6aa;font-size:13px;margin-top:4px}
-  .stores{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-  .st{font-size:12px;padding:3px 8px;border-radius:99px;background:#222;color:#ddd;cursor:pointer;user-select:none;border:1px solid #333}
-  .st.off{opacity:.35;text-decoration:line-through}
-  .st i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+  .stores{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .st{font-size:13px;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;user-select:none;border:2px solid transparent;display:inline-flex;gap:6px;align-items:center}
+  .st small{font-weight:500;opacity:.9}
+  .st.ok{background:#1864ab;color:#fff;border-color:#4dabf7}
+  .st.stale{background:#ffd43b;color:#111;border-color:#fab005}
+  .st.fail{color:#fff;border-color:#fff;background:repeating-linear-gradient(45deg,#333 0 8px,#555 8px 16px)}
+  .st.off{background:transparent!important;color:#888;border:2px dashed #666;text-decoration:line-through}
+  .legend{font-size:12px;color:#bdb6aa;margin-top:8px}
   .bar{position:sticky;top:0;z-index:5;background:rgba(246,244,239,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:end}
   .f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
   .f b{color:var(--ink);font-size:13px}
@@ -65,6 +69,7 @@
   <h1>Black Friday · <b>Juegos de mesa</b> del Top 1000 BGG</h1>
   <div class="sub" id="sub">Cargando…</div>
   <div class="stores" id="stores" title="Pulsa una tienda para ocultarla/mostrarla"></div>
+  <div class="legend">✓ azul = leída hoy · ⚠ amarilla = falló hoy, se muestran datos anteriores · ✗ rayada = sin datos · pulsa una tienda para ocultarla</div>
 </header>
 
 <div class="bar">
@@ -110,10 +115,13 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   d.items.forEach(i=>i._q = strip(i.name+' '+i.bgg_name+' '+i.base_name));
   const when = new Date(d.generated_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'full',timeStyle:'short'});
   $('sub').textContent = `Actualizado ${when} · ${d.items.length} juegos y expansiones del top en ${Object.keys(d.stores).length} tiendas`;
-  $('stores').innerHTML = Object.entries(d.stores).map(([n,s])=>{
-    const c = !s.ok ? (s.stale_from ? 'var(--warn)' : 'var(--bad)') : 'var(--ok)';
+  const rk = s => s.ok ? 0 : (s.stale_from ? 1 : 2);
+  $('stores').innerHTML = Object.entries(d.stores).sort((a,b)=>rk(a[1])-rk(b[1])).map(([n,s])=>{
+    const cls = s.ok ? 'ok' : (s.stale_from ? 'stale' : 'fail');
+    const icon = {ok:'✓', stale:'⚠', fail:'✗'}[cls];
+    const label = s.ok ? (s.products||0).toLocaleString('es-ES') : (s.stale_from ? 'datos anteriores' : 'sin datos');
     const tip = s.ok ? `${s.products} productos leídos` : (s.stale_from ? `Error hoy; datos de ${new Date(s.stale_from).toLocaleString('es-ES')}` : `Error: ${s.error}`);
-    return `<span class="st" data-s="${esc(n)}" title="${esc(tip)}"><i style="background:${c}"></i>${esc(n)}</span>`;
+    return `<span class="st ${cls}" data-s="${esc(n)}" title="${esc(tip)}">${icon} ${esc(n)} <small>${label}</small></span>`;
   }).join('');
   $('stores').onclick = e => { const el = e.target.closest('.st'); if(!el) return;
     const n = el.dataset.s; hidden.has(n) ? hidden.delete(n) : hidden.add(n); el.classList.toggle('off'); apply(); };
