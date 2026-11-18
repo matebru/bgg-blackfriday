@@ -28,6 +28,7 @@ HISTORY = ROOT / "data" / "history.json"
 INCLUDE_FOREIGN = False      # alemán, francés, italiano... fuera (inglés y castellano sí entran)
 STALE_MAX_HOURS = 30         # si una tienda falla, reutilizamos su último scrape si es reciente
 SUSPICIOUS = 0.35            # precio < 35% de la mediana del resto de tiendas -> se descarta
+MAX_DISCOUNT = 90            # descuentos por encima de esto se consideran errores y se descartan
 PVP_OUTLIER = 1.6            # un tachado > 1.6x la mediana se ignora (precio inflado o error)
 
 
@@ -116,9 +117,13 @@ def main(only=None):
         for o in sorted(offers, key=lambda o: (o["stock"] == "out", o["price"])):
             per_store.setdefault((o["store"], o["lang"]), o)
         offers = drop_suspicious(sorted(per_store.values(), key=lambda o: o["price"]))
+        pvp = pvp_of(offers)
+        # Más de un 90% de descuento no es una oferta, es un error de casado o de precio: fuera.
+        offers = [o for o in offers if o["price"] >= pvp * (1 - MAX_DISCOUNT / 100)]
+        if not offers:
+            continue
         available = [o for o in offers if o["stock"] != "out"]
         best = (available or offers)[0]
-        pvp = pvp_of(offers)
         discount = round(100 * (1 - best["price"] / pvp), 1) if pvp else 0.0
 
         h = history.get(key)
