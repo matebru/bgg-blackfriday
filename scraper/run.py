@@ -138,6 +138,8 @@ def main(only=None):
             "bgg_id": m["bgg_id"] or m["base_id"],
             "base_name": m["base_name"],
             "rank": m["rank"],
+            "new": m["new"],                       # novedad 2025-26 fuera del top 1000
+            "year": m["year"],
             "img": best["img"] or data_bgg_image(data_bgg, m["base_id"]),
             "price": best["price"],
             "pvp": pvp,

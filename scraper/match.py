@@ -83,14 +83,14 @@ class Matcher:
         self.index = {}      # norm_name -> (kind, bgg_id, base_id)
         self.base_index = {}
         # Expansiones primero, luego bases: ante choque de nombres gana el base.
-        for g in sorted(bgg["games"], key=lambda g: -g["rank"]):
+        for g in sorted(bgg["games"], key=lambda g: -(g.get("rank") or 99999)):
             for e in g.get("expansions", []):
                 if FAN.search(e["name"]):
                     continue
                 n = norm(e["name"])
                 if len(n) >= 3:
                     self.index[n] = ("expansion", e["id"], g["id"], e["name"])
-        for g in sorted(bgg["games"], key=lambda g: -g["rank"]):
+        for g in sorted(bgg["games"], key=lambda g: -(g.get("rank") or 99999)):
             primary = norm(g["name"])
             for name in set(g.get("names") or []) | {g["name"]}:
                 n = norm(name)
@@ -148,7 +148,9 @@ class Matcher:
             "base_id": base_id,
             "base_name": base["name"],
             "bgg_name": bgg_name,
-            "rank": base["rank"],
+            "rank": base.get("rank"),
+            "new": bool(base.get("is_new")),
+            "year": base.get("year"),
             "how": how,
             "foreign": foreign,
             "lang": lang,

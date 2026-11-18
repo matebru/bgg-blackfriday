@@ -24,6 +24,8 @@ BASE = "https://boardgamegeek.com"
 TOP_N = 1000
 BGG_MAX_AGE_DAYS = 7
 OUT = Path(__file__).resolve().parent.parent / "data" / "bgg.json"
+# Novedades 2025-2026 fuera del top (lista generada aparte desde la búsqueda avanzada de BGG)
+NEW_FILE = OUT.parent / "bgg_new.json"
 
 # Solo nos interesan nombres en alfabeto latino (castellano, inglés, catalán...).
 def is_latin(name):
@@ -115,7 +117,23 @@ def build(top_n: int = TOP_N):
 
 
 def load(force: bool = False):
-    """Devuelve el top cacheado; lo reconstruye si no existe o está caducado."""
+    """Top cacheado (se reconstruye si caduca) + novedades 2025-2026 si existe data/bgg_new.json."""
+    data = _load_top(force)
+    if NEW_FILE.exists():
+        top_ids = {g["id"] for g in data["games"]}
+        extra = []
+        for g in json.loads(NEW_FILE.read_text()).get("games", []):
+            if g["id"] in top_ids:
+                continue
+            g["rank"] = g.get("bgg_rank")       # ranking real de BGG (puede no tener)
+            g["is_new"] = True
+            extra.append(g)
+        data = {**data, "games": data["games"] + extra}
+        print(f"BGG: {len(top_ids)} del top + {len(extra)} novedades 2025-2026", flush=True)
+    return data
+
+
+def _load_top(force: bool = False):
     if OUT.exists() and not force:
         data = json.loads(OUT.read_text())
         age = datetime.now(timezone.utc) - datetime.fromisoformat(data["generated_at"])
@@ -127,7 +145,6 @@ def load(force: bool = False):
             print(f"! No se pudo refrescar BGG ({e}); uso la copia de {data['generated_at']}", flush=True)
             return data
     return build()
-
 
 if __name__ == "__main__":
     build(int(sys.argv[1]) if len(sys.argv) > 1 else TOP_N)
