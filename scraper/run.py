@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "data.json"
 CACHE = ROOT / "data" / "cache"
 HISTORY = ROOT / "data" / "history.json"
+HISTORY_START = "2026-11-18T00:00:00+00:00"   # fecha de arranque del panel (para el historial antiguo)
 
 INCLUDE_FOREIGN = False      # alemán, francés, italiano... fuera (inglés y castellano sí entran)
 STALE_MAX_HOURS = 30         # si una tienda falla, reutilizamos su último scrape si es reciente
@@ -127,8 +128,17 @@ def main(only=None):
         discount = round(100 * (1 - best["price"] / pvp), 1) if pvp else 0.0
 
         h = history.get(key)
-        if not h or best["price"] < h["min"]:
-            history[key] = h = {"min": best["price"], "store": best["store"], "at": stamp}
+        if not h:
+            history[key] = h = {"min": best["price"], "store": best["store"], "at": stamp,
+                                "first": stamp, "last": best["price"]}
+        else:
+            if "first" not in h:                 # entradas de antes de existir este campo
+                h["first"] = HISTORY_START
+            if best["price"] < h.get("last", best["price"]) - 0.005:
+                h["drop_at"] = stamp             # más barato que en la pasada anterior
+            if best["price"] < h["min"]:
+                h.update(min=best["price"], store=best["store"], at=stamp)
+            h["last"] = best["price"]
 
         items.append({
             "key": key,
@@ -149,6 +159,8 @@ def main(only=None):
             "stock": best["stock"],
             "lang": best["lang"],
             "min_seen": h["min"],
+            "first_seen": h["first"],              # cuándo apareció en el panel por primera vez
+            "drop_at": h.get("drop_at"),           # última vez que bajó de precio respecto a la pasada anterior
             "offers": [{"store": o["store"], "price": o["price"], "url": o["url"], "stock": o["stock"], "lang": o["lang"]}
                        for o in offers],
         })
