@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Black Friday · Juegos de mesa (Top 1000 BGG)</title>
+<title>Black Friday · Juegos de mesa (Top 2000 BGG)</title>
 <style>
   :root{
     --bg:#f6f4ef; --card:#fff; --ink:#1d1b18; --muted:#6f6a61; --line:#e4dfd4;
@@ -60,6 +60,24 @@
   details a{color:inherit}
   details li.o{text-decoration:line-through;opacity:.6}
   .fresh{font-size:12px;font-weight:700;background:#111;color:#fff;padding:4px 8px;border-radius:7px;align-self:flex-start}
+  .user{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px}
+  .who{font-weight:700}
+  .sync{font-size:12px;color:var(--ok)}
+  .lnk{font:inherit;background:none;border:none;text-decoration:underline;cursor:pointer;color:inherit;padding:4px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:1000}
+  .modal[hidden]{display:none}
+  .mbox{background:#fff;border-radius:14px;padding:22px;max-width:420px;width:92%;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .mbox h3{margin:0 0 8px}
+  .mbox p{margin:0 0 14px;color:var(--muted);font-size:14px}
+  .mbox input{width:100%;font:inherit;padding:10px 12px;border:2px solid #111;border-radius:9px}
+  .merr{color:var(--bad);font-size:13px;min-height:18px;margin-top:4px}
+  .mbtns{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+  .mok{font:inherit;font-weight:700;background:#1864ab;color:#fff;border:none;border-radius:9px;padding:10px 16px;cursor:pointer}
+  .optbtn{font:inherit;font-weight:800;background:#1864ab;color:#fff;border:2px solid #1864ab;border-radius:9px;padding:10px 16px;cursor:pointer}
+  .optbtn.on{background:#fff;color:#1864ab}
+  .ship{font-size:13px;margin:-2px 0 8px;color:var(--muted)}
+  .ship b{color:var(--ink)}
+  .savings{background:#e7f5ff;border:2px solid #1864ab;color:#0b4a8b;border-radius:10px;padding:10px 14px;margin-top:12px;font-weight:600}
   .similar{font-size:12px;line-height:1.35;background:#e7f5ff;color:#0b4a8b;padding:5px 8px;border-radius:7px;border:1px solid #a5d8ff}
   .favbtn{display:block;width:100%;text-align:center;font:inherit;font-weight:700;padding:8px;border-radius:9px;cursor:pointer;border:2px solid #1864ab;background:#fff;color:#1864ab}
   .favbtn.on{background:#1864ab;color:#fff}
@@ -85,18 +103,28 @@
 </head>
 <body>
 <header>
-  <h1>Black Friday · <b>Juegos de mesa</b> del Top 1000 BGG</h1>
+  <h1>Black Friday · <b>Juegos de mesa</b> del Top 2000 BGG</h1>
   <div class="sub" id="sub">Cargando…</div>
   <div class="stores" id="stores" title="Pulsa una tienda para ocultarla/mostrarla"></div>
   <div class="legend">✓ azul = leída hoy · ⚠ amarilla = falló hoy, se muestran datos anteriores · ✗ rayada = sin datos · pulsa una tienda para ocultarla</div>
 </header>
 
-<div class="tabs"><button class="tab on" id="tabDeals">Ofertas</button><button class="tab" id="tabFavs">★ Favoritos (0)</button></div>
+<div class="tabs"><button class="tab on" id="tabDeals">Ofertas</button><button class="tab" id="tabFavs">★ Favoritos (0)</button><div class="user" id="user"></div></div>
+
+<div class="modal" id="modal" hidden>
+  <form class="mbox" id="mform">
+    <h3>Crea tu usuario</h3>
+    <p>Para guardar favoritos y preferencias necesitas un usuario. Basta con tu email: así los verás desde cualquier dispositivo.</p>
+    <input type="email" id="email" placeholder="tu@email.com" autocomplete="email" required>
+    <div class="merr" id="merr"></div>
+    <div class="mbtns"><button type="button" class="lnk" id="mcancel">Ahora no</button><button type="submit" class="mok">Guardar mi usuario</button></div>
+  </form>
+</div>
 
 <div class="bar">
   <label class="f"><b>Buscar</b><input type="search" id="q" placeholder="Nombre del juego…"></label>
   <label class="f"><b>Descuento mínimo: <span id="dv">10</span>%</b><input type="range" id="d" min="0" max="80" step="5" value="10"></label>
-  <label class="f"><b>Ranking BGG hasta: #<span id="rv">1000</span></b><input type="range" id="r" min="10" max="1000" step="10" value="1000"></label>
+  <label class="f"><b>Ranking BGG hasta: #<span id="rv">2000</span></b><input type="range" id="r" min="10" max="2000" step="10" value="2000"></label>
   <label class="f"><b>Tipo</b>
     <select id="t"><option value="all">Juegos y expansiones</option><option value="base">Solo juegos</option><option value="expansion">Solo expansiones</option></select>
   </label>
@@ -110,7 +138,7 @@
     <select id="lng"><option value="all">Castellano e inglés</option><option value="es">Solo castellano</option><option value="en">Solo inglés</option></select>
   </label>
   <label class="f chk"><input type="checkbox" id="stk" checked> Solo con stock / preventa</label>
-  <label class="f chk" title="Juegos publicados en 2025 y 2026 que no están en el top 1000 de BGG"><input type="checkbox" id="nov" checked> Incluir novedades 2025-2026</label>
+  <label class="f chk" title="Juegos publicados en 2025 y 2026 que no están en el top 2000 de BGG"><input type="checkbox" id="nov" checked> Incluir novedades 2025-2026</label>
   <label class="f chk" title="X-Wing, Armada, Star Wars Unlimited, Star Wars Destiny, Blood Bowl, Runewars, Magic"><input type="checkbox" id="mini" checked> Ocultar miniaturas de ejércitos y coleccionables</label>
   <div class="count" id="count"></div>
 </div>
@@ -139,15 +167,75 @@ let DATA, hidden = new Set(), shown = PAGE, list = [], mode = 'deals';
 const SIMILAR = 1.05;   // otra tienda "a precio similar" = como mucho un 5% más cara
 let FAVS = {};
 try { FAVS = JSON.parse(localStorage.getItem('bf_favs')||'{}') || {}; } catch(e) {}
-const saveFavs = () => { try { localStorage.setItem('bf_favs', JSON.stringify(FAVS)); } catch(e) {} favCount(); };
+// ---- Usuario (solo email, sin contraseña) y favoritos en Supabase ----
+const SB_URL = 'https://jnjyhniakcbulydspocz.supabase.co/rest/v1/favoritos';
+const SB_KEY = 'sb_publishable_DPG0KLHJkOO0HPSS8q6mRg_qPxSUr9n';   // clave pública (pensada para ir en la web)
+let USER = null; try { USER = localStorage.getItem('bf_user'); } catch(e) {}
+let pushTimer = null;
+const saveFavs = () => {
+  try { localStorage.setItem('bf_favs', JSON.stringify(FAVS)); } catch(e) {}
+  favCount();
+  if (USER) { clearTimeout(pushTimer); pushTimer = setTimeout(pushFavs, 600); }
+};
+async function pushFavs(){
+  try {
+    await fetch(SB_URL + '?on_conflict=email', { method:'POST',
+      headers:{apikey:SB_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
+      body: JSON.stringify({email:USER, favs:FAVS, updated_at:new Date().toISOString()}) });
+    syncMsg('Guardado');
+  } catch(e) { syncMsg('Sin conexión: guardado solo en este navegador'); }
+}
+async function pullFavs(){
+  try {
+    const r = await fetch(SB_URL + '?select=favs&email=eq.' + encodeURIComponent(USER), {headers:{apikey:SB_KEY}});
+    const rows = await r.json();
+    return (rows && rows[0] && rows[0].favs) || {};
+  } catch(e) { return {}; }
+}
+async function login(email){
+  USER = email.trim().toLowerCase();
+  try { localStorage.setItem('bf_user', USER); } catch(e) {}
+  const remote = await pullFavs();
+  FAVS = {...remote, ...FAVS};          // une lo que tenías en este navegador con lo guardado en tu usuario
+  saveFavs(); userBox();
+}
+function logout(){
+  USER = null; FAVS = {};
+  try { localStorage.removeItem('bf_user'); localStorage.removeItem('bf_favs'); } catch(e) {}
+  favCount(); userBox(); mode==='favs' ? renderFavs() : render();
+}
+function userBox(){
+  $('user').innerHTML = USER
+    ? `<span class="who">👤 ${esc(USER)}</span> <button class="lnk" id="logout">Salir</button> <span id="sync" class="sync"></span>`
+    : `<button class="tab" id="loginBtn">👤 Entrar</button>`;
+  if ($('logout')) $('logout').onclick = logout;
+  if ($('loginBtn')) $('loginBtn').onclick = () => askLogin();
+}
+const syncMsg = t => { if ($('sync')) { $('sync').textContent = t; setTimeout(()=>{ if($('sync')) $('sync').textContent=''; }, 2500); } };
+let pendingFav = null;
+function askLogin(favKey){
+  pendingFav = favKey || null;
+  $('modal').hidden = false; $('email').value = ''; $('email').focus(); $('merr').textContent = '';
+}
+$('mcancel').onclick = () => { $('modal').hidden = true; pendingFav = null; };
+$('mform').onsubmit = async e => {
+  e.preventDefault();
+  const v = $('email').value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { $('merr').textContent = 'Ese email no parece válido'; return; }
+  $('modal').hidden = true;
+  await login(v);
+  if (pendingFav) { toggleFav(pendingFav); pendingFav = null; }
+  mode==='favs' ? renderFavs() : render();
+};
 const favCount = () => { $('tabFavs').textContent = `★ Favoritos (${Object.keys(FAVS).length})`; };
 // Juegos del top que funcionan comprando ejércitos/sobres (wargames de miniaturas y coleccionables)
-const MINIS = /^(magic: the gathering|star wars: x-wing|star wars: armada|star wars: unlimited|star wars: destiny|runewars|blood bowl \(|blood bowl: living rulebook|warhammer 40,000|warhammer age of sigmar|warhammer underworlds|star wars: legion|star wars: shatterpoint|marvel: crisis protocol)/i;
+const MINIS = /^(magic: the gathering|star wars: x-wing|star wars: armada|star wars: unlimited|star wars: destiny|runewars|blood bowl \(|blood bowl: living rulebook|warhammer 40,000|warhammer age of sigmar|warhammer underworlds|star wars: legion|star wars: shatterpoint|marvel: crisis protocol|disney lorcana|keyforge|blood bowl: second season|battletech)/i;
 // "Últimas 48 h" se cuenta desde la última actualización de datos, no desde la hora actual
 const within48 = ts => !!ts && (Date.parse(DATA.generated_at) - Date.parse(ts)) <= 48*3600*1000;
 const ago = ts => { const h = Math.max(1, Math.round((Date.parse(DATA.generated_at) - Date.parse(ts))/3600000)); return h < 48 ? `hace ${h} h` : `hace ${Math.round(h/24)} días`; };
-const similarOf = i => i.offers.filter(o => !(o.store===i.store && o.lang===i.lang) && o.stock!=='out'
-                                            && !hidden.has(o.store) && o.price <= i.price*SIMILAR);
+const similarOf = i => { const seen = new Set([i.store]);
+  return i.offers.filter(o => o.stock!=='out' && !hidden.has(o.store) && o.price <= i.price*SIMILAR
+                              && !seen.has(o.store) && seen.add(o.store)); };
 
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   DATA = d;
@@ -164,7 +252,8 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   }).join('');
   $('stores').onclick = e => { const el = e.target.closest('.st'); if(!el) return;
     const n = el.dataset.s; hidden.has(n) ? hidden.delete(n) : hidden.add(n); el.classList.toggle('off'); apply(); };
-  favCount();
+  favCount(); userBox();
+  if (USER) pullFavs().then(remote => { FAVS = {...remote, ...FAVS}; saveFavs(); mode==='favs' ? renderFavs() : render(); });
   apply();
 }).catch(e=>{ $('sub').textContent = 'No se pudo cargar data.json: '+e; });
 
@@ -175,12 +264,16 @@ function setMode(m){ mode=m; $('tabDeals').classList.toggle('on',m==='deals'); $
   document.querySelector('.bar').style.display = m==='favs' ? 'none' : ''; $('favs').hidden = m!=='favs';
   ['grid','more','empty'].forEach(id=>$(id).style.display = m==='favs' ? 'none' : '');
   m==='favs' ? renderFavs() : render(); }
+function toggleFav(k){
+  if(FAVS[k]) delete FAVS[k];
+  else { const i = DATA.items.find(x=>x.key===k); if(i) FAVS[k] = {key:k, name:i.name, img:i.img, price:i.price, store:i.store, url:i.url, at:DATA.generated_at}; }
+  saveFavs();
+}
 document.addEventListener('click', e=>{
   const b = e.target.closest('[data-fav]'); if(!b) return;
   const k = b.dataset.fav;
-  if(FAVS[k]) delete FAVS[k];
-  else { const i = DATA.items.find(x=>x.key===k); if(i) FAVS[k] = {key:k, name:i.name, img:i.img, price:i.price, store:i.store, url:i.url, at:DATA.generated_at}; }
-  saveFavs(); mode==='favs' ? renderFavs() : render();
+  if (!USER && !FAVS[k]) { askLogin(k); return; }   // para guardar hace falta usuario
+  toggleFav(k); mode==='favs' ? renderFavs() : render();
 });
 $('more').onclick = ()=>{ shown += PAGE; render(); };
 
@@ -225,7 +318,7 @@ function card(i){
       <img loading="lazy" referrerpolicy="no-referrer" src="${esc(i.img)||PH}" alt="${esc(i.name)}" onerror="this.onerror=null;this.src='${PH}'">
       <span class="badge ${i.discount<1?'zero':''}">${i.discount<1?'PVP':'-'+Math.round(i.discount)+'%'}</span>
       ${i.new
-        ? `<span class="rank new" title="Novedad ${i.year||''} fuera del top 1000${i.rank?' · ranking BGG #'+i.rank:''}">NOVEDAD ${i.year||''}</span>`
+        ? `<span class="rank new" title="Novedad ${i.year||''} fuera del top 2000${i.rank?' · ranking BGG #'+i.rank:''}">NOVEDAD ${i.year||''}</span>`
         : `<span class="rank" title="Ranking BoardGameGeek${i.kind==='expansion'?' del juego base':''}">#${i.rank}</span>`}
       ${tag}${st}${i.lang==='en'?'<span class="tag en" title="Edición en inglés">EN</span>':''}
     </a>
@@ -243,42 +336,107 @@ function card(i){
   </article>`;
 }
 
-// Favoritos agrupados por tienda. Con "agrupar" activo, cada juego va a la tienda donde está a
-// precio similar (±5%) que más favoritos comparte, para pedir en el menor número de tiendas.
+// ---- Envíos por tienda (península). est = coste no publicado en su web, estimado ----
+const SHIP = {
+  'Zacatrus':         {tiers:[[0,4.90],[50,0]]},
+  'Dracotienda':      {tiers:[[0,5.00],[60,0]]},
+  'Mathom':           {tiers:[[0,5.50],[20,3.75],[65,0]]},
+  'Dungeon Marvels':  {tiers:[[0,4.90],[50,0]]},
+  'Jugamos Otra':     {tiers:[[0,4.90],[60,0]]},
+  'Ludoteca Maldita': {tiers:[[0,6.50],[65,0]]},
+  'EGD Games':        {tiers:[[0,4.95],[60,0]], est:true},
+  'PlanetOnGames':    {tiers:[[0,4.99],[60,0]]},
+  'Kaburi':           {tiers:[[0,5.50],[50,0]]},
+  'Generación X':     {tiers:[[0,4.95],[40,0]], est:true},
+  'MasQueOca':        {tiers:[[0,5.95],[90,0]], est:true},
+};
+const shipOf = (store, sub) => { const t = (SHIP[store]||{tiers:[[0,4.95],[60,0]]}).tiers; let c = t[0][1]; for (const [min,cost] of t) if (sub >= min) c = cost; return sub > 0 ? c : 0; };
+const freeFrom = store => { const t = (SHIP[store]||{tiers:[[0,4.95],[60,0]]}).tiers; const z = t.find(x=>x[1]===0); return z ? z[0] : null; };
+const costOf = assign => { const sub = {}; let total = 0;
+  for (const o of assign) { sub[o.store] = (sub[o.store]||0) + o.price; total += o.price; }
+  for (const st in sub) total += shipOf(st, sub[st]); return total; };
+
+// Optimizador: prueba cada combinación de tiendas; dentro de cada una asigna cada juego a la más barata
+// y luego mueve juegos de tienda mientras baje el total (precio + envíos, contando el umbral de envío gratis).
+function optimize(items){
+  const cands = items.map(i => {
+    const o = i.offers.filter(x => x.stock!=='out' && !hidden.has(x.store) && ($('lng').value==='all' || x.lang===$('lng').value));
+    return o.length ? o : [{store:i.store, price:i.price, url:i.url, lang:i.lang}];
+  });
+  const stores = [...new Set(cands.flat().map(o=>o.store))];
+  let best = null, bestCost = Infinity;
+  const n = stores.length, limit = n <= 12 ? (1<<n) : 0;
+  const tryWith = allowed => {
+    const assign = [];
+    for (const c of cands) { const ok = c.filter(o=>allowed.has(o.store)); if (!ok.length) return; assign.push(ok.reduce((a,b)=>a.price<=b.price?a:b)); }
+    let cur = costOf(assign), improved = true, guard = 0;
+    while (improved && guard++ < 200) {
+      improved = false;
+      for (let k=0;k<assign.length;k++) for (const o of cands[k]) {
+        if (!allowed.has(o.store) || o===assign[k]) continue;
+        const prev = assign[k]; assign[k] = o; const c2 = costOf(assign);
+        if (c2 < cur - 0.001) { cur = c2; improved = true; } else assign[k] = prev;
+      }
+    }
+    if (cur < bestCost) { bestCost = cur; best = assign.slice(); }
+  };
+  if (limit) { for (let m=1;m<limit;m++) { const a = new Set(); for (let b=0;b<n;b++) if (m>>b&1) a.add(stores[b]); tryWith(a); } }
+  else tryWith(new Set(stores));
+  return best;
+}
+
+// Favoritos agrupados por tienda, con 3 formas de repartir la compra.
 function renderFavs(){
-  const consolidate = $('cons') ? $('cons').checked : true;
+  const how = $('how') ? $('how').value : 'cheap';
   const live = [], gone = [];
   for(const f of Object.values(FAVS)){
     const it = DATA.items.find(x=>x.key===f.key); const v = it && view(it);
     v ? live.push(v) : gone.push(f);
   }
-  const cands = i => [{store:i.store, price:i.price, url:i.url, lang:i.lang}].concat(consolidate ? similarOf(i) : []);
-  const freq = {}; live.forEach(i=>new Set(cands(i).map(o=>o.store)).forEach(s=>freq[s]=(freq[s]||0)+1));
-  const groups = {};
-  for(const i of live){
-    const pick = cands(i).sort((a,b)=>(freq[b.store]-freq[a.store]) || (a.price-b.price))[0];
-    (groups[pick.store] = groups[pick.store] || []).push({i, o:pick});
+  let picks;
+  if (how === 'opt') picks = optimize(live) || [];
+  else {
+    const cands = i => [{store:i.store, price:i.price, url:i.url, lang:i.lang}].concat(how==='few' ? similarOf(i) : []);
+    const freq = {}; live.forEach(i=>new Set(cands(i).map(o=>o.store)).forEach(s=>freq[s]=(freq[s]||0)+1));
+    picks = live.map(i => cands(i).sort((a,b)=>(freq[b.store]-freq[a.store]) || (a.price-b.price))[0]);
   }
+  // referencia: cada juego en su tienda más barata (sin pensar en envíos)
+  const naive = live.map(i => ({store:i.store, price:i.price}));
+  const groups = {};
+  live.forEach((i,k) => { const o = picks[k]; (groups[o.store] = groups[o.store] || []).push({i, o}); });
   const order = Object.entries(groups).sort((a,b)=>b[1].length-a[1].length);
   let total = 0;
   const html = order.map(([st, rows])=>{
-    const sub = rows.reduce((t,r)=>t+r.o.price,0); total += sub;
-    return `<h2>${esc(st)} <small>${rows.length} ${rows.length>1?'juegos':'juego'} · ${fmt(sub)}</small></h2>` + rows.map(({i,o})=>{
-      const alt = similarOf(i).filter(x=>x.store!==o.store).concat(o.store!==i.store?[{store:i.store,price:i.price}]:[]);
+    const sub = rows.reduce((t,r)=>t+r.o.price,0), sh = shipOf(st, sub), ff = freeFrom(st);
+    total += sub + sh;
+    const est = (SHIP[st]||{}).est || !SHIP[st];
+    const shipTxt = sh === 0 ? `<b>Envío gratis</b>` : `Envío <b>${fmt(sh)}</b>${est?' (estimado)':''}` + (ff ? ` · te faltan <b>${fmt(ff-sub)}</b> para envío gratis (desde ${fmt(ff)})` : '');
+    return `<h2>${esc(st)} <small>${rows.length} ${rows.length>1?'juegos':'juego'} · ${fmt(sub)} + envío = ${fmt(sub+sh)}</small></h2><div class="ship">${shipTxt}</div>` + rows.map(({i,o})=>{
+      const alt = i.offers.filter(x=>x.store!==o.store && x.stock!=='out' && !hidden.has(x.store)).slice(0,4);
       return `<div class="frow"><img src="${esc(i.img)||PH}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${PH}'" alt="">
-        <div><div class="n">${esc(i.name)}</div><div class="s">PVP ${fmt(i.pvp)} · -${Math.round(100*(1-o.price/i.pvp))}%${alt.length?' · también: '+alt.map(x=>`${esc(x.store)} ${fmt(x.price)}`).join(', '):''}</div>
+        <div><div class="n">${esc(i.name)}</div><div class="s">PVP ${fmt(i.pvp)} · -${Math.round(100*(1-o.price/i.pvp))}%${alt.length?' · otras: '+alt.map(x=>`${esc(x.store)} ${fmt(x.price)}`).join(', '):''}</div>
         <button data-fav="${esc(i.key)}">Quitar</button></div>
         <div class="p">${fmt(o.price)}</div><a class="go" href="${esc(o.url)}" target="_blank" rel="noopener">Ir a ${esc(st)}</a></div>`;
     }).join('');
   }).join('');
+  const naiveCost = costOf(naive);
+  const savings = (how!=='cheap' && live.length) ? (naiveCost - total) : 0;
   const goneHtml = gone.length ? `<h2>Ya no aparecen en las ofertas <small>${gone.length}</small></h2>` + gone.map(f=>`<div class="frow"><img src="${esc(f.img)||PH}" referrerpolicy="no-referrer" alt="">
       <div><div class="n">${esc(f.name)}</div><div class="s">Último visto: ${esc(f.store)} a ${fmt(f.price)}</div><button data-fav="${esc(f.key)}">Quitar</button></div>
       <div class="p"></div><a class="go" href="${esc(f.url)}" target="_blank" rel="noopener">Ver</a></div>`).join('') : '';
-  $('favs').innerHTML = `<div class="favtools"><label><input type="checkbox" id="cons" ${consolidate?'checked':''}> Agrupar para pedir en menos tiendas (acepta hasta un 5% más caro)</label>
+  $('favs').innerHTML = `<div class="favtools">
+      <button class="optbtn ${how==='opt'?'on':''}" id="optBtn">${how==='opt'?'✓ Compra optimizada':'⚙ Optimizar compra'}</button>
+      <label>Reparto: <select id="how">
+        <option value="cheap" ${how==='cheap'?'selected':''}>Cada juego en su tienda más barata</option>
+        <option value="few" ${how==='few'?'selected':''}>Menos tiendas (acepta hasta un 5% más caro)</option>
+        <option value="opt" ${how==='opt'?'selected':''}>Mínimo coste total contando envíos</option></select></label>
       <span>${live.length} favoritos en ${order.length} ${order.length===1?'tienda':'tiendas'}</span></div>`
-    + (live.length||gone.length ? html + goneHtml + (live.length?`<div class="total">Total: ${fmt(total)}</div>`:'')
+    + (live.length||gone.length ? html + goneHtml
+        + (live.length?`<div class="total">Total con envíos: ${fmt(total)}</div>`:'')
+        + (savings > 0.009 ? `<div class="savings">Ahorras ${fmt(savings)} frente a comprar cada juego en su tienda más barata (${fmt(naiveCost)} con envíos).</div>` : '')
        : '<p class="empty">Aún no tienes favoritos. Pulsa «☆ Añadir a favoritos» en cualquier juego.</p>');
-  $('cons').onchange = renderFavs;
+  $('how').onchange = renderFavs;
+  $('optBtn').onclick = () => { $('how').value = how==='opt' ? 'cheap' : 'opt'; renderFavs(); };
 }
 
 function render(){
