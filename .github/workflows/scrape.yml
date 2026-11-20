@@ -3,9 +3,9 @@ name: Black Friday scrape
 on:
   schedule:
     # GitHub usa UTC. Madrid en invierno = UTC+1 -> 10:00 y 22:00 hora de Madrid.
-    # (GitHub puede retrasar los cron unos minutos en horas punta.)
-    - cron: "0 9 * * *"
-    - cron: "0 21 * * *"
+    # Minuto 7 y no en punto: los cron en punto se retrasan horas en GitHub por saturación.
+    - cron: "7 9 * * *"
+    - cron: "7 21 * * *"
   workflow_dispatch:
     inputs:
       stores:
