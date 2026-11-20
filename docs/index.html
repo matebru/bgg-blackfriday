@@ -77,7 +77,9 @@
   .optbtn.on{background:#fff;color:#1864ab}
   .ship{font-size:13px;margin:-2px 0 8px;color:var(--muted)}
   .ship b{color:var(--ink)}
-  .savings{background:#e7f5ff;border:2px solid #1864ab;color:#0b4a8b;border-radius:10px;padding:10px 14px;margin-top:12px;font-weight:600}
+  .savings{background:#e7f5ff;border:2px solid #1864ab;color:#0b4a8b;border-radius:10px;padding:10px 14px;margin-top:12px;text-align:right}
+  .savings .big{display:block;font-size:30px;font-weight:800;line-height:1.1}
+  .savings .small{display:block;font-size:13px;font-weight:500;margin-top:2px}
   .similar{font-size:12px;line-height:1.35;background:#e7f5ff;color:#0b4a8b;padding:5px 8px;border-radius:7px;border:1px solid #a5d8ff}
   .favbtn{display:block;width:100%;text-align:center;font:inherit;font-weight:700;padding:8px;border-radius:9px;cursor:pointer;border:2px solid #1864ab;background:#fff;color:#1864ab}
   .favbtn.on{background:#1864ab;color:#fff}
@@ -166,14 +168,17 @@ const PH = "data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.o
 let DATA, hidden = new Set(), shown = PAGE, list = [], mode = 'deals';
 const SIMILAR = 1.05;   // otra tienda "a precio similar" = como mucho un 5% más cara
 let FAVS = {};
-try { FAVS = JSON.parse(localStorage.getItem('bf_favs')||'{}') || {}; } catch(e) {}
 // ---- Usuario (solo email, sin contraseña) y favoritos en Supabase ----
 const SB_URL = 'https://jnjyhniakcbulydspocz.supabase.co/rest/v1/favoritos';
 const SB_KEY = 'sb_publishable_DPG0KLHJkOO0HPSS8q6mRg_qPxSUr9n';   // clave pública (pensada para ir en la web)
 let USER = null; try { USER = localStorage.getItem('bf_user'); } catch(e) {}
+// copia local etiquetada con su dueño: nunca se muestran favoritos de otro email (ni de nadie si no hay sesión)
+const localFavs = u => { try { const o = JSON.parse(localStorage.getItem('bf_favs')||'null');
+  return (u && o && o.owner === u && o.favs) ? o.favs : {}; } catch(e) { return {}; } };
+FAVS = localFavs(USER);
 let pushTimer = null;
 const saveFavs = () => {
-  try { localStorage.setItem('bf_favs', JSON.stringify(FAVS)); } catch(e) {}
+  if (USER) { try { localStorage.setItem('bf_favs', JSON.stringify({owner:USER, favs:FAVS})); } catch(e) {} }
   favCount();
   if (USER) { clearTimeout(pushTimer); pushTimer = setTimeout(pushFavs, 600); }
 };
@@ -189,14 +194,15 @@ async function pullFavs(){
   try {
     const r = await fetch(SB_URL + '?select=favs&email=eq.' + encodeURIComponent(USER), {headers:{apikey:SB_KEY}});
     const rows = await r.json();
+    if (!r.ok) return null;
     return (rows && rows[0] && rows[0].favs) || {};
-  } catch(e) { return {}; }
+  } catch(e) { return null; }
 }
 async function login(email){
   USER = email.trim().toLowerCase();
   try { localStorage.setItem('bf_user', USER); } catch(e) {}
   const remote = await pullFavs();
-  FAVS = {...remote, ...FAVS};          // une lo que tenías en este navegador con lo guardado en tu usuario
+  FAVS = remote || localFavs(USER);     // solo los favoritos de ESTE email; nada heredado de otra sesión
   saveFavs(); userBox();
 }
 function logout(){
@@ -253,7 +259,7 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   $('stores').onclick = e => { const el = e.target.closest('.st'); if(!el) return;
     const n = el.dataset.s; hidden.has(n) ? hidden.delete(n) : hidden.add(n); el.classList.toggle('off'); apply(); };
   favCount(); userBox();
-  if (USER) pullFavs().then(remote => { FAVS = {...remote, ...FAVS}; saveFavs(); mode==='favs' ? renderFavs() : render(); });
+  if (USER) pullFavs().then(remote => { if (remote) { FAVS = remote; saveFavs(); } mode==='favs' ? renderFavs() : render(); });
   apply();
 }).catch(e=>{ $('sub').textContent = 'No se pudo cargar data.json: '+e; });
 
@@ -433,7 +439,7 @@ function renderFavs(){
       <span>${live.length} favoritos en ${order.length} ${order.length===1?'tienda':'tiendas'}</span></div>`
     + (live.length||gone.length ? html + goneHtml
         + (live.length?`<div class="total">Total con envíos: ${fmt(total)}</div>`:'')
-        + (savings > 0.009 ? `<div class="savings">Ahorras ${fmt(savings)} frente a comprar cada juego en su tienda más barata (${fmt(naiveCost)} con envíos).</div>` : '')
+        + (savings > 0.009 ? `<div class="savings"><span class="big">Ahorras ${fmt(savings)}</span><span class="small">frente a comprar cada juego en su tienda más barata (${fmt(naiveCost)} con envíos)</span></div>` : '')
        : '<p class="empty">Aún no tienes favoritos. Pulsa «☆ Añadir a favoritos» en cualquier juego.</p>');
   $('how').onchange = renderFavs;
   $('optBtn').onclick = () => { $('how').value = how==='opt' ? 'cheap' : 'opt'; renderFavs(); };
