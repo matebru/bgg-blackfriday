@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup
 from .http import Http
 
 BASE = "https://boardgamegeek.com"
-TOP_N = 1000
+TOP_N = 2000
 BGG_MAX_AGE_DAYS = 7
 OUT = Path(__file__).resolve().parent.parent / "data" / "bgg.json"
 # Novedades 2025-2026 fuera del top (lista generada aparte desde la búsqueda avanzada de BGG)
