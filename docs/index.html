@@ -59,6 +59,7 @@
   details summary{cursor:pointer}
   details a{color:inherit}
   details li.o{text-decoration:line-through;opacity:.6}
+  .fresh{font-size:12px;font-weight:700;background:#111;color:#fff;padding:4px 8px;border-radius:7px;align-self:flex-start}
   .similar{font-size:12px;line-height:1.35;background:#e7f5ff;color:#0b4a8b;padding:5px 8px;border-radius:7px;border:1px solid #a5d8ff}
   .favbtn{display:block;width:100%;text-align:center;font:inherit;font-weight:700;padding:8px;border-radius:9px;cursor:pointer;border:2px solid #1864ab;background:#fff;color:#1864ab}
   .favbtn.on{background:#1864ab;color:#fff}
@@ -102,6 +103,9 @@
   <label class="f"><b>Ordenar</b>
     <select id="s"><option value="disc">Mayor descuento</option><option value="rank">Mejor ranking BGG</option><option value="price">Precio más bajo</option><option value="save">Mayor ahorro en €</option></select>
   </label>
+  <label class="f"><b>Recién llegado</b>
+    <select id="fresh"><option value="all">Todo</option><option value="new48">Nuevos en las últimas 48 h</option><option value="drop48">Bajada de precio en 48 h</option></select>
+  </label>
   <label class="f"><b>Idioma</b>
     <select id="lng"><option value="all">Castellano e inglés</option><option value="es">Solo castellano</option><option value="en">Solo inglés</option></select>
   </label>
@@ -139,6 +143,9 @@ const saveFavs = () => { try { localStorage.setItem('bf_favs', JSON.stringify(FA
 const favCount = () => { $('tabFavs').textContent = `★ Favoritos (${Object.keys(FAVS).length})`; };
 // Juegos del top que funcionan comprando ejércitos/sobres (wargames de miniaturas y coleccionables)
 const MINIS = /^(magic: the gathering|star wars: x-wing|star wars: armada|star wars: unlimited|star wars: destiny|runewars|blood bowl \(|blood bowl: living rulebook|warhammer 40,000|warhammer age of sigmar|warhammer underworlds|star wars: legion|star wars: shatterpoint|marvel: crisis protocol)/i;
+// "Últimas 48 h" se cuenta desde la última actualización de datos, no desde la hora actual
+const within48 = ts => !!ts && (Date.parse(DATA.generated_at) - Date.parse(ts)) <= 48*3600*1000;
+const ago = ts => { const h = Math.max(1, Math.round((Date.parse(DATA.generated_at) - Date.parse(ts))/3600000)); return h < 48 ? `hace ${h} h` : `hace ${Math.round(h/24)} días`; };
 const similarOf = i => i.offers.filter(o => !(o.store===i.store && o.lang===i.lang) && o.stock!=='out'
                                             && !hidden.has(o.store) && o.price <= i.price*SIMILAR);
 
@@ -161,7 +168,7 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   apply();
 }).catch(e=>{ $('sub').textContent = 'No se pudo cargar data.json: '+e; });
 
-['q','d','r','t','s','stk','lng','mini','nov'].forEach(id=>$(id).addEventListener('input',apply));
+['q','d','r','t','s','stk','lng','mini','nov','fresh'].forEach(id=>$(id).addEventListener('input',apply));
 $('tabDeals').onclick = ()=>setMode('deals');
 $('tabFavs').onclick = ()=>setMode('favs');
 function setMode(m){ mode=m; $('tabDeals').classList.toggle('on',m==='deals'); $('tabFavs').classList.toggle('on',m==='favs');
@@ -192,12 +199,14 @@ function view(i){
 function apply(){
   if(!DATA) return;
   const q = strip($('q').value.trim()), dmin = +$('d').value, rmax = +$('r').value, t = $('t').value, stk = $('stk').checked, s = $('s').value;
+  const fr = $('fresh').value;
   $('dv').textContent = dmin; $('rv').textContent = rmax;
   list = DATA.items.map(view).filter(i => i
     && i.discount >= dmin && (i.new ? $('nov').checked : i.rank <= rmax)
     && (t==='all' || i.kind===t)
     && (!stk || i.stock!=='out')
     && (!$('mini').checked || !MINIS.test(i.base_name))
+    && (fr==='all' || (fr==='new48' ? within48(i.first_seen) : within48(i.drop_at)))
     && (!q || q.split(/\s+/).every(w=>i._q.includes(w))));
   const by = {disc:(a,b)=>b.discount-a.discount||(a.rank||99999)-(b.rank||99999), rank:(a,b)=>(a.rank||99999)-(b.rank||99999)||b.discount-a.discount,
               price:(a,b)=>a.price-b.price, save:(a,b)=>(b.pvp-b.price)-(a.pvp-a.price)}[s];
@@ -225,6 +234,7 @@ function card(i){
       <div class="name" title="${esc(i.name)}">${esc(i.name)}</div>
       ${sub?`<div class="bggn">BGG: ${esc(sub)}</div>`:''}
       <div class="prices"><span class="price">${fmt(i.price)}</span>${i.pvp>i.price?`<span class="pvp">${fmt(i.pvp)}</span>`:''}</div>
+      ${within48(i.first_seen) ? `<div class="fresh">🆕 Nuevo en el panel · ${ago(i.first_seen)}</div>` : within48(i.drop_at) ? `<div class="fresh">↓ Bajó de precio · ${ago(i.drop_at)}</div>` : ''}
       <div class="meta"><span>${esc(i.store)}</span>${i.min_seen<i.price?`<span class="min" title="Precio mínimo registrado en la campaña">mín. visto ${fmt(i.min_seen)}</span>`:''}</div>
       ${others.length?`<details><summary>Otras tiendas (${others.length})</summary><ul>${others.map(o=>`<li class="${o.stock==='out'?'o':''}"><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.store)}</a>: ${fmt(o.price)}${o.lang==='en'?' (EN)':''}</li>`).join('')}</ul></details>`:''}
       <a class="buy" href="${esc(i.url)}" target="_blank" rel="noopener">Ver en ${esc(i.store)}</a>
